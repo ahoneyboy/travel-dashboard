@@ -1,0 +1,36 @@
+{
+  "name": "travel-workbench",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.{vue,js,css}\" \"*.{js,json,html}\"",
+    "deploy": "bash scripts/deploy-pages.sh"
+  },
+  "dependencies": {
+    "echarts": "^5.6.0",
+    "localforage": "^1.10.0",
+    "lucide-vue-next": "^0.454.0",
+    "pinia": "^2.3.0",
+    "vue": "^3.5.12",
+    "vue-echarts": "^7.0.3",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.14.0",
+    "@vitejs/plugin-vue": "^5.2.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.14.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-vue": "^9.31.0",
+    "globals": "^15.12.0",
+    "postcss": "^8.4.47",
+    "prettier": "^3.3.3",
+    "tailwindcss": "^3.4.14",
+    "vite": "^5.4.10"
+  }
+}

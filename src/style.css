@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-surface font-sans text-ink antialiased;
+    font-size: 14px;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-line;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  /* 卡片 */
+  .card {
+    @apply rounded-card bg-white shadow-card;
+  }
+  .card-pad {
+    @apply p-4 md:p-5;
+  }
+
+  /* 按钮（移动端触控区 ≥44px） */
+  .btn {
+    @apply inline-flex min-h-11 select-none items-center justify-center gap-1.5 rounded-full px-5 text-sm font-bold transition-colors md:min-h-10;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-white hover:bg-brand-dark;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-white text-ink hover:bg-brand-soft;
+  }
+  .btn-danger {
+    @apply btn bg-danger text-white hover:bg-[#c94b4b];
+  }
+  /* 小图标按钮（44px 触控区） */
+  .btn-icon {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-brand-soft hover:text-brand-dark md:h-9 md:w-9;
+  }
+  .btn-icon-danger {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-[#fdecec] hover:text-danger md:h-9 md:w-9;
+  }
+
+  /* 表单 */
+  .input {
+    @apply w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-ink transition focus:border-brand focus:ring-2 focus:ring-brand/20;
+  }
+  .field-label {
+    @apply mb-1.5 block text-xs font-bold text-muted;
+  }
+  .field-error {
+    @apply mt-1 text-xs text-danger;
+  }
+
+  /* 筛选 chip */
+  .chip {
+    @apply inline-flex h-11 shrink-0 cursor-pointer items-center rounded-full border border-line bg-white px-4 text-sm text-[#4a5a52] transition-colors md:h-9;
+  }
+  .chip-active {
+    @apply border-brand bg-brand font-bold text-white;
+  }
+
+  /* 列表行悬浮操作 */
+  .row-hover {
+    @apply transition-shadow hover:shadow-pop;
+  }
+}
+
+/* 路由切换过渡 */
+.page-enter-active,
+.page-leave-active {
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* Toast / 弹层过渡 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+.pop-enter-active,
+.pop-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.pop-enter-from,
+.pop-leave-to {
+  opacity: 0;
+  transform: scale(0.94) translateY(6px);
+}
+
+/* 横向滚动条（时间线 / 天标签） */
+.scroll-x {
+  @apply overflow-x-auto;
+  scrollbar-width: none;
+}
+.scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* 启动占位（应用初始化完成前） */
+#boot-splash {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: #f3f6f2;
+  color: #829189;
+  font-size: 13px;
+  letter-spacing: 2px;
+}
+.boot-ring {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid #dbe7de;
+  border-top-color: #4a9e6e;
+  animation: boot-spin 0.9s linear infinite;
+}
+@keyframes boot-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
