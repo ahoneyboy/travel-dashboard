@@ -1,6 +1,8 @@
 // 应用初始化：首次使用灌入演示数据，之后从 IndexedDB 加载
+// 种子数据版本：v1 = 初始演示数据；v2 = 新增国内热门/网红/4A-5A 景区预设库
 import { dbClear, dbGet, dbSet, DB_KEYS } from '../utils/storage'
 import { buildSeedData } from '../utils/seed'
+import { buildPresetDestinations } from '../data/attractions'
 import { useTripsStore } from './trips'
 import { useItineraryStore } from './itinerary'
 import { useDestinationsStore } from './destinations'
@@ -10,16 +12,25 @@ import { useMemoriesStore } from './memories'
 import { useWishlistStore } from './wishlist'
 import { useSettingsStore } from './settings'
 
+export const SEED_VERSION = 2
+
 export async function initStores() {
-  const seeded = await dbGet(DB_KEYS.seeded, false)
-  if (!seeded) {
+  const seededRaw = await dbGet(DB_KEYS.seeded, 0)
+  // 兼容旧版本存布尔值的写法，统一换算成数字版本号
+  const version = typeof seededRaw === 'number' ? seededRaw : seededRaw ? 1 : 0
+
+  if (version === 0) {
+    // 全新安装：写入完整演示数据（含景区预设库）
     const data = buildSeedData()
-    await Promise.all(
-      // settings 单独存对象，其余都是数组
-      Object.entries(data).map(([name, value]) => dbSet(DB_KEYS[name], value))
-    )
-    await dbSet(DB_KEYS.seeded, true)
+    await Promise.all(Object.entries(data).map(([name, value]) => dbSet(DB_KEYS[name], value)))
+  } else if (version < SEED_VERSION) {
+    // 老数据升级：只合并新增的预设景区，绝不覆盖已有数据
+    const current = await dbGet(DB_KEYS.destinations, [])
+    const haveNames = new Set(current.map((d) => d.name))
+    const additions = buildPresetDestinations().filter((p) => !haveNames.has(p.name))
+    if (additions.length) await dbSet(DB_KEYS.destinations, [...current, ...additions])
   }
+  if (version < SEED_VERSION) await dbSet(DB_KEYS.seeded, SEED_VERSION)
 
   await Promise.all([
     useTripsStore().load(),

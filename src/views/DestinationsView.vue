@@ -1,5 +1,6 @@
 <script setup>
-// 目的地库：卡片 + 状态筛选 + 搜索 + CRUD
+// 目的地库：卡片 + 状态/等级筛选 + 搜索 + CRUD
+// 内置国内热门/网红/4A-5A 景区预设（level 字段标识），可按等级筛选
 import { computed, ref } from 'vue'
 import { Compass, MapPin, Pencil, Plus, Search, Sun, Trash2 } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
@@ -14,6 +15,7 @@ const destinations = useDestinationsStore()
 const ui = useUiStore()
 
 const filter = ref('all')
+const levelFilter = ref('')
 const keyword = ref('')
 const drawerOpen = ref(false)
 const editingId = ref(null)
@@ -21,23 +23,55 @@ const errors = ref({})
 
 const form = ref({})
 
+// 目的地等级（预设景区自带，自建目的地可选）
+const LEVELS = ['5A', '4A', '网红', '热门']
+
+const statusCounts = computed(() => ({
+  all: destinations.destinations.length,
+  visited: destinations.visited.length,
+  want: destinations.wanted.length,
+}))
+
+const levelCounts = computed(() => {
+  const map = { '5A': 0, '4A': 0, 网红: 0, 热门: 0 }
+  destinations.destinations.forEach((d) => {
+    if (d.level in map) map[d.level]++
+  })
+  return map
+})
+
 const filtered = computed(() => {
   let list = destinations.destinations
   if (filter.value !== 'all') list = list.filter((d) => d.status === filter.value)
+  if (levelFilter.value) list = list.filter((d) => d.level === levelFilter.value)
   const kw = keyword.value.trim()
-  if (kw) list = list.filter((d) => d.name.includes(kw) || d.country.includes(kw) || d.city.includes(kw))
+  if (kw) {
+    list = list.filter(
+      (d) =>
+        d.name.includes(kw) ||
+        d.country.includes(kw) ||
+        (d.province || '').includes(kw) ||
+        d.city.includes(kw)
+    )
+  }
   return list
 })
 
+/** 卡片上的地域显示：优先「省份 · 城市」，无省份则「国家 · 城市」 */
+function place(d) {
+  const parts = d.province
+    ? [d.province, d.city !== d.name ? d.city : '']
+    : [d.country, d.city !== d.name ? d.city : '']
+  return parts.filter(Boolean).join(' · ') || '未填写'
+}
+
 function statusStyle(d) {
-  return d.status === 'visited'
-    ? 'bg-brand text-white'
-    : 'bg-gold text-white'
+  return d.status === 'visited' ? 'bg-brand text-white' : 'bg-gold text-white'
 }
 
 function openCreate() {
   editingId.value = null
-  form.value = { name: '', country: '中国', city: '', status: 'want', bestSeason: '', rating: 0, imageUrl: '', note: '' }
+  form.value = { name: '', country: '中国', province: '', city: '', status: 'want', level: '', bestSeason: '', rating: 0, imageUrl: '', note: '' }
   errors.value = {}
   drawerOpen.value = true
 }
@@ -51,7 +85,13 @@ function openEdit(d) {
 function save() {
   errors.value.name = form.value.name.trim() ? '' : '请输入目的地名称'
   if (errors.value.name) return
-  const payload = { ...form.value, name: form.value.name.trim(), city: form.value.city.trim(), country: form.value.country.trim() }
+  const payload = {
+    ...form.value,
+    name: form.value.name.trim(),
+    city: (form.value.city || '').trim(),
+    country: (form.value.country || '').trim(),
+    province: (form.value.province || '').trim(),
+  }
   if (editingId.value) {
     destinations.updateDestination(editingId.value, payload)
     ui.toast('目的地已更新')
@@ -73,13 +113,16 @@ async function remove(d) {
 
 <template>
   <div>
-    <PageHeader title="目的地库" sub="去过的地方与想去的远方">
+    <PageHeader title="目的地库" :sub="`去过的地方与想去的远方 · 内置 ${destinations.destinations.length} 个国内热门景区预设`">
       <button class="btn-primary" @click="openCreate"><Plus class="h-4 w-4" /> 新增目的地</button>
     </PageHeader>
 
-    <div class="mb-4 flex flex-wrap items-center gap-2.5">
+    <!-- 状态筛选 -->
+    <div class="mb-2.5 flex flex-wrap items-center gap-2.5">
       <div class="scroll-x flex gap-2">
-        <button class="chip" :class="filter === 'all' && 'chip-active'" @click="filter = 'all'">全部</button>
+        <button class="chip" :class="filter === 'all' && 'chip-active'" @click="filter = 'all'">
+          全部 {{ statusCounts.all }}
+        </button>
         <button
           v-for="s in DEST_STATUS"
           :key="s.value"
@@ -87,25 +130,44 @@ async function remove(d) {
           :class="filter === s.value && 'chip-active'"
           @click="filter = s.value"
         >
-          {{ s.label }}
+          {{ s.label }} {{ statusCounts[s.value] }}
         </button>
       </div>
       <div class="relative ml-auto w-full sm:w-56">
         <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-        <input v-model="keyword" class="input !pl-9" placeholder="搜索名称 / 国家 / 城市" />
+        <input v-model="keyword" class="input !pl-9" placeholder="搜索名称 / 省份 / 城市" />
       </div>
+    </div>
+
+    <!-- 等级筛选 -->
+    <div class="scroll-x mb-4 flex gap-2">
+      <button class="chip" :class="levelFilter === '' && 'chip-active'" @click="levelFilter = ''">全部等级</button>
+      <button
+        v-for="lv in LEVELS"
+        :key="lv"
+        class="chip"
+        :class="levelFilter === lv && 'chip-active'"
+        @click="levelFilter = levelFilter === lv ? '' : lv"
+      >
+        {{ lv }} {{ levelCounts[lv] }}
+      </button>
     </div>
 
     <div v-if="filtered.length" class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
       <div v-for="d in filtered" :key="d.id" class="card row-hover overflow-hidden">
         <div class="relative h-36">
-          <img v-if="d.imageUrl" :src="d.imageUrl" :alt="d.name" class="h-full w-full object-cover" />
+          <img v-if="d.imageUrl" :src="d.imageUrl" :alt="d.name" class="h-full w-full object-cover" loading="lazy" />
           <div v-else class="flex h-full items-center justify-center bg-gradient-to-br from-brand-light to-[#dcebf9]">
             <Compass class="h-8 w-8 text-brand/60" />
           </div>
-          <span class="absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-bold" :class="statusStyle(d)">
-            {{ d.status === 'visited' ? '去过' : '想去' }}
-          </span>
+          <div class="absolute left-3 top-3 flex gap-1.5">
+            <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusStyle(d)">
+              {{ d.status === 'visited' ? '去过' : '想去' }}
+            </span>
+            <span v-if="d.level" class="rounded-full bg-black/55 px-2.5 py-1 text-xs font-bold text-white backdrop-blur">
+              {{ d.level }}
+            </span>
+          </div>
           <div class="absolute right-3 top-3 flex gap-1" @click.prevent>
             <button class="btn-icon !h-8 !w-8 bg-white/90" title="编辑" @click="openEdit(d)">
               <Pencil class="h-3.5 w-3.5" />
@@ -122,7 +184,7 @@ async function remove(d) {
           </div>
           <div class="mt-1 flex items-center gap-1 text-xs text-muted">
             <MapPin class="h-3.5 w-3.5 shrink-0" />
-            {{ [d.country, d.city !== d.name ? d.city : ''].filter(Boolean).join(' · ') || '未填写' }}
+            {{ place(d) }}
           </div>
           <div v-if="d.bestSeason" class="mt-1 flex items-center gap-1 text-xs text-muted">
             <Sun class="h-3.5 w-3.5 shrink-0" /> 最佳时间：{{ d.bestSeason }}
@@ -135,8 +197,8 @@ async function remove(d) {
     <div v-else class="card">
       <EmptyState
         :icon="Compass"
-        :title="keyword || filter !== 'all' ? '没有匹配的目的地' : '目的地库还是空的'"
-        :desc="keyword || filter !== 'all' ? '换个条件试试' : '把去过和想去的地方都收藏进来'"
+        :title="keyword || filter !== 'all' || levelFilter ? '没有匹配的目的地' : '目的地库还是空的'"
+        :desc="keyword || filter !== 'all' || levelFilter ? '换个条件试试' : '把去过和想去的地方都收藏进来'"
         action-text="新增目的地"
         @action="openCreate"
       />
@@ -155,8 +217,21 @@ async function remove(d) {
             <p v-if="errors.name" class="field-error">{{ errors.name }}</p>
           </div>
           <div>
+            <label class="field-label">等级</label>
+            <select v-model="form.level" class="input">
+              <option value="">不标注</option>
+              <option v-for="lv in LEVELS" :key="lv" :value="lv">{{ lv }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
             <label class="field-label">国家</label>
             <input v-model="form.country" class="input" placeholder="如：日本" />
+          </div>
+          <div>
+            <label class="field-label">省份</label>
+            <input v-model="form.province" class="input" placeholder="国内目的地填写" />
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">

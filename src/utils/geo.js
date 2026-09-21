@@ -1,4 +1,5 @@
 // 城市经纬度字典：足迹地图打点用。未收录的城市会归入「未定位」列表
+import { ATTRACTION_COORDS } from '../data/attractions'
 const CITY_COORDS = {
   北京: [116.41, 39.9],
   上海: [121.47, 31.23],
@@ -46,10 +47,11 @@ const CITY_COORDS = {
   千岛湖: [119.03, 29.6],
 }
 
-/** 按名称找城市坐标：先精确匹配，再包含匹配（如「大理古城」→ 大理） */
+/** 按名称找坐标：城市字典 → 预设景点坐标（如「玉龙雪山」），未收录返回 null */
 export function findCityCoord(name) {
   if (!name) return null
   if (CITY_COORDS[name]) return CITY_COORDS[name]
+  if (ATTRACTION_COORDS[name]) return ATTRACTION_COORDS[name]
   const hit = Object.keys(CITY_COORDS).find((k) => name.includes(k))
   return hit ? CITY_COORDS[hit] : null
 }

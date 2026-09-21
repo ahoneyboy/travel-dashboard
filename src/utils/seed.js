@@ -1,6 +1,7 @@
 // 演示数据：取自设计示例（知知的「日本 · 关西之旅」、圣托里尼 / 冰岛 / 巴厘岛 / 秘鲁回忆等）。
 // 仅在首次打开（本地无数据）时写入一次，可在「设置」里清空或重新导入。
 import { placeholderImage } from './placeholder'
+import { buildPresetDestinations } from '../data/attractions'
 
 // 静态资源路径：自动适配部署子路径（GitHub Pages 项目页部署在 /仓库名/ 下）
 const asset = (p) => import.meta.env.BASE_URL + p
@@ -288,6 +289,10 @@ export function buildSeedData() {
     avatar: asset('demo/avatar.jpg'),
     bio: '生活不止眼前的苟且，还有诗和远方的田野。',
   }
+
+  // 追加国内热门/网红/4A-5A 景区预设（按名称去重，演示数据优先）
+  const haveNames = new Set(destinations.map((d) => d.name))
+  destinations.push(...buildPresetDestinations().filter((p) => !haveNames.has(p.name)))
 
   return { trips, dayPlans, itineraryItems, destinations, expenses, packTemplates, packItems, memories, wishlist, settings }
 }
