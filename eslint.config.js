@@ -19,4 +19,9 @@ export default [
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },
   },
+  {
+    // 运维脚本跑在 Node 环境
+    files: ['scripts/**/*.mjs', 'scripts/**/*.js'],
+    languageOptions: { globals: { ...globals.node } },
+  },
 ]

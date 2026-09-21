@@ -36,7 +36,8 @@ watch(
           md:inset-y-0 md:left-auto md:right-0 md:h-full md:max-h-full md:w-[440px] md:rounded-none md:rounded-l-2xl"
         :class="[
           wide ? 'md:w-[560px]' : '',
-          open ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full',
+          // 关闭时多推出 24px：桌面端滚动条会在视口右侧留缝，只推 100% 会露出面板边缘
+          open ? 'translate-y-0 md:translate-x-0' : 'translate-y-[calc(100%+24px)] md:translate-y-0 md:translate-x-[calc(100%+24px)]',
         ]"
       >
         <!-- 头部（手机端顶部带抓握条） -->
