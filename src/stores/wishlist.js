@@ -30,6 +30,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
       location: '',
       bestSeason: '',
       status: 'want',
+      level: '',
       imageUrl: '',
       note: '',
       createdAt: new Date().toISOString(),

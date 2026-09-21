@@ -1,9 +1,12 @@
 <script setup>
-// 愿望清单：想去 / 已去 / 放弃 的状态流转 + CRUD
-import { computed, ref } from 'vue'
+// 愿望清单：想去 / 已去 / 放弃 的状态流转 + CRUD + 分享文案粘贴导入
+// 支持从手机分享面板 / iOS 快捷指令 / 手动粘贴三种方式带入文案，自动识别地点入库
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   CircleCheckBig,
   CircleX,
+  ClipboardPaste,
   MapPin,
   Pencil,
   Plus,
@@ -16,9 +19,11 @@ import PageHeader from '../components/ui/PageHeader.vue'
 import EmptyState from '../components/ui/EmptyState.vue'
 import BaseDrawer from '../components/ui/BaseDrawer.vue'
 import ImageUploader from '../components/ui/ImageUploader.vue'
+import ShareImportDrawer from '../components/ShareImportDrawer.vue'
 import { useWishlistStore, WISH_STATUS, WISH_STATUS_STYLE } from '../stores/wishlist'
 import { useUiStore } from '../stores/ui'
 
+const route = useRoute()
 const wishlist = useWishlistStore()
 const ui = useUiStore()
 
@@ -27,6 +32,48 @@ const drawerOpen = ref(false)
 const editingId = ref(null)
 const errors = ref({})
 const form = ref({})
+
+// 分享导入
+const importOpen = ref(false)
+const importText = ref('')
+
+onMounted(() => {
+  // 手机分享面板（Android PWA）会把文案放在页面 search 参数上
+  const shared = sessionStorage.getItem('shared-text')
+  // iOS 快捷指令走 hash 内 query：#/wishlist?share=xxx
+  const fromQuery = route.query.share
+  if (shared) {
+    sessionStorage.removeItem('shared-text')
+    importText.value = shared
+    importOpen.value = true
+  } else if (fromQuery) {
+    importText.value = String(fromQuery)
+    importOpen.value = true
+  }
+})
+
+// 应用已打开时，快捷指令通过 hash 导航带入分享文案也能触发
+watch(
+  () => route.query.share,
+  (v) => {
+    if (v) {
+      importText.value = String(v)
+      importOpen.value = true
+    }
+  }
+)
+
+/** 批量导入（重名的自动跳过） */
+function handleImport(items) {
+  let added = 0
+  items.forEach((it) => {
+    if (wishlist.wishlist.some((w) => w.name === it.name)) return
+    wishlist.addItem(it)
+    added++
+  })
+  importOpen.value = false
+  ui.toast(added ? `已导入 ${added} 个想去的地方` : '这些地方已经在愿望清单里啦', added ? 'success' : 'info')
+}
 
 const counts = computed(() => ({
   want: wishlist.wishlist.filter((w) => w.status === 'want').length,
@@ -84,6 +131,9 @@ function setStatus(w, status) {
 <template>
   <div>
     <PageHeader title="愿望清单" sub="想去的地方，终会抵达">
+      <button class="btn-ghost" @click="importOpen = true">
+        <ClipboardPaste class="h-4 w-4" /> 粘贴导入
+      </button>
       <button class="btn-primary" @click="openCreate"><Plus class="h-4 w-4" /> 新增愿望</button>
     </PageHeader>
 
@@ -110,12 +160,17 @@ function setStatus(w, status) {
           <div v-else class="flex h-full items-center justify-center bg-gradient-to-br from-brand-light to-[#f0eaf8]">
             <Sparkles class="h-7 w-7 text-brand/60" />
           </div>
-          <span
-            class="absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-bold"
-            :class="WISH_STATUS_STYLE[w.status]"
-          >
-            {{ WISH_STATUS.find((s) => s.value === w.status)?.label }}
-          </span>
+          <div class="absolute left-3 top-3 flex gap-1.5">
+            <span
+              class="rounded-full px-2.5 py-1 text-xs font-bold"
+              :class="WISH_STATUS_STYLE[w.status]"
+            >
+              {{ WISH_STATUS.find((s) => s.value === w.status)?.label }}
+            </span>
+            <span v-if="w.level" class="rounded-full bg-black/55 px-2.5 py-1 text-xs font-bold text-white backdrop-blur">
+              {{ w.level }}
+            </span>
+          </div>
           <div class="absolute right-2 top-2 flex gap-1">
             <button class="btn-icon !h-8 !w-8 bg-white/90" title="编辑" @click="openEdit(w)">
               <Pencil class="h-3.5 w-3.5" />
@@ -211,5 +266,13 @@ function setStatus(w, status) {
         </div>
       </form>
     </BaseDrawer>
+
+    <!-- 分享文案粘贴导入 -->
+    <ShareImportDrawer
+      :open="importOpen"
+      :initial-text="importText"
+      @close="importOpen = false"
+      @import="handleImport"
+    />
   </div>
 </template>

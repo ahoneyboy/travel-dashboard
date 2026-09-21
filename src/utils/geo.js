@@ -1,6 +1,6 @@
 // 城市经纬度字典：足迹地图打点用。未收录的城市会归入「未定位」列表
 import { ATTRACTION_COORDS } from '../data/attractions'
-const CITY_COORDS = {
+export const CITY_COORDS = {
   北京: [116.41, 39.9],
   上海: [121.47, 31.23],
   广州: [113.26, 23.13],

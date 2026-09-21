@@ -41,6 +41,17 @@ app.component('VChart', VChart)
 initStores()
   .catch((e) => console.error('[init] 本地数据初始化失败', e))
   .finally(() => {
+    // 手机分享面板（Android PWA share_target）会把文案放在 search 参数上：
+    // 暂存后跳到愿望清单的导入抽屉，并清掉 URL 参数防止刷新重复弹出
+    const params = new URLSearchParams(window.location.search)
+    const shared = params.get('text') || params.get('share') || params.get('title') || ''
+    if (shared) {
+      sessionStorage.setItem('shared-text', shared)
+      const url = new URL(window.location.href)
+      ;['text', 'share', 'title', 'url'].forEach((k) => url.searchParams.delete(k))
+      window.history.replaceState(null, '', url)
+      router.replace('/wishlist')
+    }
     app.mount('#app')
     document.getElementById('boot-splash')?.remove()
   })
